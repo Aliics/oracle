@@ -3,6 +3,7 @@
 #include "log.h"
 #include <X11/X.h>
 #include <X11/Xlib.h>
+#include <X11/extensions/Xinerama.h>
 #include <assert.h>
 #include <stdlib.h>
 
@@ -15,10 +16,15 @@ int main(int argc, char **argv) {
   log_debug("Display has been opened.\n");
 
   int scr = DefaultScreen(dpy);
-  int scr_w = XDisplayWidth(dpy, scr);
-  int scr_h = XDisplayHeight(dpy, scr);
-
-  log_debug("Screen dimensions: %dx%d\n", scr_w, scr_h);
+  int scr_w, scr_h;
+  {
+    int n;
+    XineramaScreenInfo *xi = XineramaQueryScreens(dpy, &n);
+    scr_w = xi->width;
+    scr_h = xi->height;
+    log_debug("Screen dimensions from Xinerama: %dx%d\n", scr_w, scr_h);
+    free(xi);
+  }
 
   XSetWindowAttributes wa = {
       .override_redirect = true,
@@ -28,16 +34,15 @@ int main(int argc, char **argv) {
 
   int win_x = scr_w / 2 - WINDOW_WIDTH / 2;
   int win_y = scr_h / 2 - WINDOW_HEIGHT / 2;
-  // Window win = XCreateWindow(
-  //     dpy, XRootWindow(dpy, scr), win_x, win_y, WINDOW_WIDTH, WINDOW_HEIGHT,
-  //     0, DefaultDepth(dpy, scr), CopyFromParent, DefaultVisual(dpy, scr),
-  //     CWOverrideRedirect | CWBackPixel | CWEventMask, &wa);
-  Window win = XCreateSimpleWindow(dpy, XRootWindow(dpy, scr), win_x, win_y,
-                                   WINDOW_WIDTH, WINDOW_HEIGHT, 2,
-                                   BlackPixel(dpy, scr), WhitePixel(dpy, scr));
+  Window win = XCreateWindow(
+      dpy, XRootWindow(dpy, scr), win_x, win_y, WINDOW_WIDTH, WINDOW_HEIGHT, 0,
+      DefaultDepth(dpy, scr), CopyFromParent, DefaultVisual(dpy, scr),
+      CWOverrideRedirect | CWBackPixel | CWEventMask, &wa);
 
   XSelectInput(dpy, win, StructureNotifyMask | KeyPressMask | FocusChangeMask);
   XMapWindow(dpy, win);
+
+  XSetInputFocus(dpy, win, scr, null);
 
   XEvent e;
   {

@@ -1,6 +1,7 @@
 .PHONY: rebuild all clean build run debug
 
 SRC=oracle.c log.c flags.c
+LIBS=x11 xinerama
 OUT=out
 BIN=$(OUT)/oracle
 
@@ -15,7 +16,7 @@ clean:
 
 build:
 	mkdir $(OUT)
-	cc $(SRC) $$(pkg-config --cflags --libs x11) -o $(BIN) -Wall
+	cc $(SRC) $$(pkg-config --cflags --libs $(LIBS)) -o $(BIN) -Wall
 
 run:
 	./$(BIN)
