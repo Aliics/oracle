@@ -60,6 +60,12 @@ int main(int argc, char **argv) {
       switch (e.type) {
       case KeyPress:
         log_debug("Pressed key: %d\n", e.xkey.keycode);
+        switch (e.xkey.keycode) {
+        case KEYCODE_EXIT:
+          log_debug("Exit using escape key\n");
+          window_open = false;
+          break;
+        }
         break;
       case FocusOut:
         log_debug("Focus lost.\n");
