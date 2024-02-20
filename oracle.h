@@ -12,5 +12,7 @@ typedef int boolean;
 #define WINDOW_HEIGHT 600
 
 #define KEYCODE_EXIT 9 // Escape
+#define KEYCODE_LSHIFT 50
+#define KEYCODE_RSHIFT 62
 
 #endif

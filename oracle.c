@@ -39,7 +39,9 @@ int main(int argc, char **argv) {
       DefaultDepth(dpy, scr), CopyFromParent, DefaultVisual(dpy, scr),
       CWOverrideRedirect | CWBackPixel | CWEventMask, &wa);
 
-  XSelectInput(dpy, win, StructureNotifyMask | KeyPressMask | FocusChangeMask);
+  XSelectInput(dpy, win,
+               StructureNotifyMask | KeyReleaseMask | KeyPressMask |
+                   FocusChangeMask);
   XMapWindow(dpy, win);
 
   XSetInputFocus(dpy, win, scr, null);
@@ -54,18 +56,41 @@ int main(int argc, char **argv) {
 
     log_debug("Window is ready\n");
 
+    char search[1024] = {};
+    int search_ln = 0;
+
     boolean window_open = true;
+    boolean shift_held = false;
     while (window_open) {
       XNextEvent(dpy, &e);
+
+      unsigned int c = e.xkey.keycode;
+      boolean is_shift_key = c == KEYCODE_LSHIFT || c == KEYCODE_RSHIFT;
+
       switch (e.type) {
       case KeyPress:
-        log_debug("Pressed key: %d\n", e.xkey.keycode);
-        switch (e.xkey.keycode) {
-        case KEYCODE_EXIT:
+        log_debug("Pressed key: %d\n", c);
+
+        if (c == KEYCODE_EXIT) {
           log_debug("Exit using escape key\n");
-          window_open = false;
+          return false;
+        }
+
+        if (is_shift_key) {
+          shift_held = true;
           break;
         }
+
+        KeySym ks = XLookupKeysym(&e.xkey, shift_held);
+        if (ks != NoSymbol) {
+          log_debug("%c\n", ks);
+          search[search_ln++] = ks;
+          break;
+        }
+        break;
+      case KeyRelease:
+        if (is_shift_key)
+          shift_held = false;
         break;
       case FocusOut:
         log_debug("Focus lost.\n");
