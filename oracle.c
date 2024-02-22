@@ -46,6 +46,15 @@ int main(int argc, char **argv) {
 
   XSetInputFocus(dpy, win, scr, null);
 
+  GC gc = XCreateGC(dpy, win, scr, null);
+  {
+    XSetForeground(dpy, gc, XWhitePixel(dpy, scr));
+
+    int font_ln;
+    char **fonts = XListFonts(dpy, "*mono*", 20, &font_ln);
+    XSetFont(dpy, gc, XLoadFont(dpy, fonts[font_ln - 1]));
+  }
+
   XEvent e;
   {
     while (true) {
@@ -62,6 +71,13 @@ int main(int argc, char **argv) {
     boolean window_open = true;
     boolean shift_held = false;
     while (window_open) {
+      XClearWindow(dpy, win);
+
+      XDrawString(dpy, win, gc, 0, 20, search, search_ln);
+      XFlush(dpy);
+
+      XDrawLine(dpy, win, gc, 0, 24, WINDOW_WIDTH, 24);
+
       XNextEvent(dpy, &e);
 
       unsigned int c = e.xkey.keycode;
@@ -73,7 +89,15 @@ int main(int argc, char **argv) {
 
         if (c == KEYCODE_EXIT) {
           log_debug("Exit using escape key\n");
-          return false;
+          window_open = false;
+          break;
+        }
+
+        if (c == KEYCODE_BACKSPACE) {
+          log_debug("Removing character\n");
+          if (search_ln > 0)
+            search_ln--;
+          break;
         }
 
         if (is_shift_key) {

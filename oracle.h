@@ -14,5 +14,6 @@ typedef int boolean;
 #define KEYCODE_EXIT 9 // Escape
 #define KEYCODE_LSHIFT 50
 #define KEYCODE_RSHIFT 62
+#define KEYCODE_BACKSPACE 22
 
 #endif
