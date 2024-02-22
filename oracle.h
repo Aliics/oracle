@@ -1,6 +1,7 @@
 #ifndef _ORACLE_H_
 #define _ORACLE_H_
 
+#include <X11/Xlib.h>
 #define true 1
 #define false 0
 
@@ -16,4 +17,19 @@ typedef int boolean;
 #define KEYCODE_RSHIFT 62
 #define KEYCODE_BACKSPACE 22
 
+typedef struct DC {
+  Display *dpy;
+  Drawable d;
+  GC gc;
+  unsigned int scr;
+} DC;
+
+void init_dc(DC *);
+
+void main_loop(DC *);
+
+void draw(DC *, const char *, int);
+
+
+boolean handle_events(DC *, XEvent *, char *, int *, boolean *);
 #endif
