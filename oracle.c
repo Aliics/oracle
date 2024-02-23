@@ -5,6 +5,7 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xinerama.h>
 #include <dirent.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -128,15 +129,29 @@ void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
   log_debug("Window is ready\n");
 
   LC lc = {
-    .bin_names = bin_names,
-    .bin_names_ln = bin_names_ln,
-    .search = (char[1024]){},
-    .search_ln = 0,
-    .sel_idx = 0,
-    .shift_held = false,
+      .search = (char[1024]){},
+      .search_ln = 0,
+      .sel_idx = 0,
+      .shift_held = false,
   };
 
   while (true) {
+    int shown_bin_names_ln = 0;
+    char *shown_bin_names[MAX_SHOWN_BIN_NAMES];
+    for (int i = 0; i < bin_names_ln; ++i) {
+      if (shown_bin_names_ln == MAX_SHOWN_BIN_NAMES)
+        break;
+
+      if (strstr(bin_names[i], lc.search) == null)
+        continue;
+
+      shown_bin_names[shown_bin_names_ln++] = bin_names[i];
+    }
+
+    lc.bin_names = shown_bin_names;
+    lc.bin_names_ln = shown_bin_names_ln;
+    lc.sel_idx = max(min(lc.sel_idx, lc.bin_names_ln), 0);
+
     draw(dc, &lc);
     if (!handle_events(dc, &e, &lc)) {
       break;
@@ -149,24 +164,26 @@ void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
 void draw(DC *dc, LC *lc) {
   XClearWindow(dc->dpy, dc->d);
 
-  XDrawString(dc->dpy, dc->d, dc->gc, 0, 20, lc->search, lc->search_ln);
+  XDrawString(dc->dpy, dc->d, dc->gc, 0, 20, "search:", 7);
+  XDrawString(dc->dpy, dc->d, dc->gc, 80, 20, lc->search, lc->search_ln);
   XFlush(dc->dpy);
 
   XDrawLine(dc->dpy, dc->d, dc->gc, 0, 24, WINDOW_WIDTH, 24);
   XFlush(dc->dpy);
 
-  int match_i = 0;
-  for (int i = 0; i < lc->bin_names_ln; ++i) {
-    if (strstr(lc->bin_names[i], lc->search) == null)
-      continue;
-    ++match_i;
+  if (lc->bin_names_ln) {
+    XDrawRectangle(dc->dpy, dc->d, dc->gc, 0, 24 + 20 * lc->sel_idx,
+                   WINDOW_WIDTH, 20);
+    XFlush(dc->dpy);
+  }
 
-    int y = 40 + (20 * match_i);
+  for (int i = 0; i < lc->bin_names_ln; ++i) {
+    int y = 40 + (20 * i);
     if (y > WINDOW_HEIGHT)
       continue;
 
     int ln = strlen(lc->bin_names[i]);
-    XDrawString(dc->dpy, dc->d, dc->gc, 0, y, lc->bin_names[i], ln);
+    XDrawString(dc->dpy, dc->d, dc->gc, 10, y, lc->bin_names[i], ln);
   }
 
   XFlush(dc->dpy);
@@ -182,6 +199,11 @@ boolean handle_events(DC *dc, XEvent *e, LC *lc) {
   case KeyPress:
     log_debug("Pressed key: %d\n", c);
 
+    if (c == KEYCODE_ENTER) {
+      popen(lc->bin_names[lc->sel_idx], "r");
+      return false;
+    }
+
     if (c == KEYCODE_EXIT) {
       log_debug("Exit using escape key\n");
       return false;
@@ -192,6 +214,18 @@ boolean handle_events(DC *dc, XEvent *e, LC *lc) {
       if (lc->search_ln > 0) {
         lc->search[--lc->search_ln] = '\0';
       }
+      break;
+    }
+
+    if (c == KEYCODE_UP) {
+      if (lc->sel_idx > 0)
+        --lc->sel_idx;
+      break;
+    }
+
+    if (c == KEYCODE_DOWN) {
+      if (lc->sel_idx < lc->bin_names_ln)
+        ++lc->sel_idx;
       break;
     }
 

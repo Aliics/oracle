@@ -9,13 +9,21 @@
 
 typedef int boolean;
 
+#define min(a, b) (a) > (b) ? (b) : (a)
+#define max(a, b) (a) < (b) ? (b) : (a)
+
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-#define KEYCODE_EXIT 9 // Escape
+#define MAX_SHOWN_BIN_NAMES 200
+
+#define KEYCODE_EXIT 9
+#define KEYCODE_ENTER 36
 #define KEYCODE_LSHIFT 50
 #define KEYCODE_RSHIFT 62
 #define KEYCODE_BACKSPACE 22
+#define KEYCODE_UP 111
+#define KEYCODE_DOWN 116
 
 #define ENV_PATH "PATH"
 char **get_bin_names(int *);
