@@ -135,22 +135,9 @@ void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
       .shift_held = false,
   };
 
+  char *shown_buffer[MAX_SHOWN_BIN_NAMES];
   while (true) {
-    int shown_bin_names_ln = 0;
-    char *shown_bin_names[MAX_SHOWN_BIN_NAMES];
-    for (int i = 0; i < bin_names_ln; ++i) {
-      if (shown_bin_names_ln == MAX_SHOWN_BIN_NAMES)
-        break;
-
-      if (strstr(bin_names[i], lc.search) == null)
-        continue;
-
-      shown_bin_names[shown_bin_names_ln++] = bin_names[i];
-    }
-
-    lc.bin_names = shown_bin_names;
-    lc.bin_names_ln = shown_bin_names_ln;
-    lc.sel_idx = max(min(lc.sel_idx, lc.bin_names_ln), 0);
+    determine_shown_bin_names(&lc, shown_buffer, bin_names, bin_names_ln);
 
     draw(dc, &lc);
     if (!handle_events(dc, &e, &lc)) {
@@ -159,6 +146,32 @@ void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
   }
 
   XCloseDisplay(dc->dpy);
+}
+
+void determine_shown_bin_names(LC *lc, char *shown_buffer[], char **bin_names, int bin_names_ln) {
+  int shown_bin_names_ln = 0;
+  for (int i = 0; i < bin_names_ln; ++i) {
+    if (shown_bin_names_ln == MAX_SHOWN_BIN_NAMES)
+      break;
+
+    if (strstr(bin_names[i], lc->search) == null)
+      continue;
+
+    boolean duplicate = false;
+    for (int j = 0; j < shown_bin_names_ln; ++j) {
+      if (strcmp(shown_buffer[j], bin_names[i]) == 0) {
+        duplicate = true;
+        break;
+      }
+    }
+
+    if (!duplicate)
+      shown_buffer[shown_bin_names_ln++] = bin_names[i];
+  }
+
+  lc->bin_names = shown_buffer;
+  lc->bin_names_ln = shown_bin_names_ln;
+  lc->sel_idx = max(min(lc->sel_idx, lc->bin_names_ln), 0);
 }
 
 void draw(DC *dc, LC *lc) {

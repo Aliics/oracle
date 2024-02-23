@@ -48,6 +48,8 @@ typedef struct LC {
   boolean shift_held;
 } LC;
 
+void determine_shown_bin_names(LC *, char *[], char **, int);
+
 void draw(DC *, LC *);
 
 boolean handle_events(DC *, XEvent *, LC *);
