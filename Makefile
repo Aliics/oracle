@@ -5,7 +5,7 @@ LIBS=x11 xinerama
 OUT=out
 BIN=$(OUT)/oracle
 
-rebuild: build run
+rebuild: clean build
 
 all: clean build run
 

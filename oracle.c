@@ -148,7 +148,8 @@ void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
   XCloseDisplay(dc->dpy);
 }
 
-void determine_shown_bin_names(LC *lc, char *shown_buffer[], char **bin_names, int bin_names_ln) {
+void determine_shown_bin_names(LC *lc, char *shown_buffer[], char **bin_names,
+                               int bin_names_ln) {
   int shown_bin_names_ln = 0;
   for (int i = 0; i < bin_names_ln; ++i) {
     if (shown_bin_names_ln == MAX_SHOWN_BIN_NAMES)
@@ -213,7 +214,8 @@ boolean handle_events(DC *dc, XEvent *e, LC *lc) {
     log_debug("Pressed key: %d\n", c);
 
     if (c == KEYCODE_ENTER) {
-      popen(lc->bin_names[lc->sel_idx], "r");
+      if (lc->bin_names_ln)
+        popen(lc->bin_names[lc->sel_idx], "r");
       return false;
     }
 
