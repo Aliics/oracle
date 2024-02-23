@@ -104,8 +104,6 @@ void init_dc(DC *dc) {
                    FocusChangeMask);
   XMapWindow(dc->dpy, dc->d);
 
-  XSetInputFocus(dc->dpy, dc->d, dc->scr, null);
-
   dc->gc = XCreateGC(dc->dpy, dc->d, dc->scr, null);
   {
     XSetForeground(dc->dpy, dc->gc, XWhitePixel(dc->dpy, dc->scr));
@@ -125,6 +123,8 @@ void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
     if (e.type == MapNotify)
       break;
   }
+
+  XSetInputFocus(dc->dpy, dc->d, dc->scr, CurrentTime);
 
   log_debug("Window is ready\n");
 
