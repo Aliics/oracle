@@ -29,9 +29,9 @@ typedef struct DC {
 
 void init_dc(DC *);
 
-void main_loop(DC *);
+void main_loop(DC *, char **, int);
 
-void draw(DC *, const char *, int);
+void draw(DC *, char **, int, const char *, int);
 
 boolean handle_events(DC *, XEvent *, char *, int *, boolean *);
 #endif

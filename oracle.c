@@ -12,21 +12,22 @@ int main(int argc, char **argv) {
   Flag flags[] = {{"--debug", set_debug}};
   parse_flags(argc, argv, flags, 1);
 
-  int n;
-  char **binary_names = get_binary_names(&n);
+  int binary_names_ln;
+  char **binary_names = get_binary_names(&binary_names_ln);
 
-  for (int i = 0; i < n; ++i) {
+  for (int i = 0; i < binary_names_ln; ++i) {
     log_debug("%s\n", binary_names[i]);
   }
 
   DC dc;
   init_dc(&dc);
-  main_loop(&dc);
+  main_loop(&dc, binary_names, binary_names_ln);
   return EXIT_SUCCESS;
 }
 
 char **get_binary_names(int *n) {
   char **out = malloc(0);
+
   char *path = getenv(ENV_PATH);
   int path_ln = strlen(path);
 
@@ -47,6 +48,9 @@ char **get_binary_names(int *n) {
 
       struct dirent *de;
       while ((de = readdir(d)) != null) {
+        if (de->d_type == DT_DIR)
+          continue;
+
         int d_name_ln = strlen(de->d_name);
 
         out = realloc(out, (*n + 1) * sizeof(char *));
@@ -113,7 +117,7 @@ void init_dc(DC *dc) {
   }
 }
 
-void main_loop(DC *dc) {
+void main_loop(DC *dc, char **binary_names, int binary_names_ln) {
   XEvent e;
 
   // Nicely waits until the window map occurs.
@@ -130,7 +134,7 @@ void main_loop(DC *dc) {
 
   boolean shift_held = false;
   while (true) {
-    draw(dc, search, search_ln);
+    draw(dc, binary_names, binary_names_ln, search, search_ln);
     if (!handle_events(dc, &e, search, &search_ln, &shift_held)) {
       break;
     }
@@ -139,7 +143,8 @@ void main_loop(DC *dc) {
   XCloseDisplay(dc->dpy);
 }
 
-void draw(DC *dc, const char *search, int search_ln) {
+void draw(DC *dc, char **binary_names, int binary_names_ln, const char *search,
+          int search_ln) {
   XClearWindow(dc->dpy, dc->d);
 
   XDrawString(dc->dpy, dc->d, dc->gc, 0, 20, search, search_ln);
