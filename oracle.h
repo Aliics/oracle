@@ -17,6 +17,9 @@ typedef int boolean;
 #define KEYCODE_RSHIFT 62
 #define KEYCODE_BACKSPACE 22
 
+#define ENV_PATH "PATH"
+char **get_binary_names(int *);
+
 typedef struct DC {
   Display *dpy;
   Drawable d;
@@ -29,7 +32,6 @@ void init_dc(DC *);
 void main_loop(DC *);
 
 void draw(DC *, const char *, int);
-
 
 boolean handle_events(DC *, XEvent *, char *, int *, boolean *);
 #endif

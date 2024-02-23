@@ -4,16 +4,65 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xinerama.h>
+#include <dirent.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char **argv) {
   Flag flags[] = {{"--debug", set_debug}};
   parse_flags(argc, argv, flags, 1);
 
+  int n;
+  char **binary_names = get_binary_names(&n);
+
+  for (int i = 0; i < n; ++i) {
+    log_debug("%s\n", binary_names[i]);
+  }
+
   DC dc;
   init_dc(&dc);
   main_loop(&dc);
   return EXIT_SUCCESS;
+}
+
+char **get_binary_names(int *n) {
+  char **out = malloc(0);
+  char *path = getenv(ENV_PATH);
+  int path_ln = strlen(path);
+
+  char dirpath[256];
+  int dirpath_ln = 0;
+  for (int i = 0; i < path_ln; ++i) {
+    dirpath[dirpath_ln++] = path[i];
+
+    if (path[i] == ':' || i == path_ln - 1) {
+      boolean include_last = path[i] == ':';
+      dirpath[dirpath_ln - include_last] = '\0';
+
+      DIR *d = opendir(dirpath);
+      if (d == null) {
+        log_debug("%d: %s does not exist\n", *n, dirpath);
+        goto clean;
+      }
+
+      struct dirent *de;
+      while ((de = readdir(d)) != null) {
+        int d_name_ln = strlen(de->d_name);
+
+        out = realloc(out, (*n + 1) * sizeof(char *));
+        out[*n] = malloc((d_name_ln + 1) * sizeof(char));
+        strcpy(out[*n], de->d_name);
+        (*n)++;
+      }
+
+      closedir(d);
+
+    clean:
+      dirpath_ln = 0;
+    }
+  }
+
+  return out;
 }
 
 void init_dc(DC *dc) {
@@ -97,6 +146,7 @@ void draw(DC *dc, const char *search, int search_ln) {
   XFlush(dc->dpy);
 
   XDrawLine(dc->dpy, dc->d, dc->gc, 0, 24, WINDOW_WIDTH, 24);
+  XFlush(dc->dpy);
 }
 
 boolean handle_events(DC *dc, XEvent *e, char *search, int *search_ln,
