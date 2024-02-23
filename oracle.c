@@ -15,9 +15,7 @@ int main(int argc, char **argv) {
   int binary_names_ln;
   char **binary_names = get_binary_names(&binary_names_ln);
 
-  for (int i = 0; i < binary_names_ln; ++i) {
-    log_debug("%s\n", binary_names[i]);
-  }
+  log_debug("Loaded %d binary paths\n", binary_names_ln);
 
   DC dc;
   init_dc(&dc);
@@ -56,7 +54,7 @@ char **get_binary_names(int *n) {
         out = realloc(out, (*n + 1) * sizeof(char *));
         out[*n] = malloc((d_name_ln + 1) * sizeof(char));
         strcpy(out[*n], de->d_name);
-        (*n)++;
+        ++(*n);
       }
 
       closedir(d);
@@ -152,6 +150,22 @@ void draw(DC *dc, char **binary_names, int binary_names_ln, const char *search,
 
   XDrawLine(dc->dpy, dc->d, dc->gc, 0, 24, WINDOW_WIDTH, 24);
   XFlush(dc->dpy);
+
+  int match_i = 0;
+  for (int i = 0; i < binary_names_ln; ++i) {
+    if (strstr(binary_names[i], search) == null)
+      continue;
+    ++match_i;
+
+    int y = 40 + (20 * match_i);
+    if (y >= WINDOW_HEIGHT)
+      continue;
+
+    int ln = strlen(binary_names[i]);
+    XDrawString(dc->dpy, dc->d, dc->gc, 0, y, binary_names[i], ln);
+  }
+
+  XFlush(dc->dpy);
 }
 
 boolean handle_events(DC *dc, XEvent *e, char *search, int *search_ln,
@@ -172,8 +186,9 @@ boolean handle_events(DC *dc, XEvent *e, char *search, int *search_ln,
 
     if (c == KEYCODE_BACKSPACE) {
       log_debug("Removing character\n");
-      if (*search_ln > 0)
-        (*search_ln)--;
+      if (*search_ln > 0) {
+        search[--(*search_ln)] = '\0';
+      }
       break;
     }
 
