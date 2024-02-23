@@ -18,7 +18,7 @@ typedef int boolean;
 #define KEYCODE_BACKSPACE 22
 
 #define ENV_PATH "PATH"
-char **get_binary_names(int *);
+char **get_bin_names(int *);
 
 typedef struct DC {
   Display *dpy;
@@ -31,7 +31,16 @@ void init_dc(DC *);
 
 void main_loop(DC *, char **, int);
 
-void draw(DC *, char **, int, const char *, int);
+typedef struct LC {
+  char **bin_names;
+  int bin_names_ln;
+  char *search;
+  int search_ln;
+  int sel_idx;
+  boolean shift_held;
+} LC;
 
-boolean handle_events(DC *, XEvent *, char *, int *, boolean *);
+void draw(DC *, LC *);
+
+boolean handle_events(DC *, XEvent *, LC *);
 #endif

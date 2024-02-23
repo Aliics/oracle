@@ -12,18 +12,18 @@ int main(int argc, char **argv) {
   Flag flags[] = {{"--debug", set_debug}};
   parse_flags(argc, argv, flags, 1);
 
-  int binary_names_ln;
-  char **binary_names = get_binary_names(&binary_names_ln);
+  int bin_names_ln;
+  char **bin_names = get_bin_names(&bin_names_ln);
 
-  log_debug("Loaded %d binary paths\n", binary_names_ln);
+  log_debug("Loaded %d binary paths\n", bin_names_ln);
 
   DC dc;
   init_dc(&dc);
-  main_loop(&dc, binary_names, binary_names_ln);
+  main_loop(&dc, bin_names, bin_names_ln);
   return EXIT_SUCCESS;
 }
 
-char **get_binary_names(int *n) {
+char **get_bin_names(int *n) {
   char **out = malloc(0);
 
   char *path = getenv(ENV_PATH);
@@ -115,7 +115,7 @@ void init_dc(DC *dc) {
   }
 }
 
-void main_loop(DC *dc, char **binary_names, int binary_names_ln) {
+void main_loop(DC *dc, char **bin_names, int bin_names_ln) {
   XEvent e;
 
   // Nicely waits until the window map occurs.
@@ -127,13 +127,18 @@ void main_loop(DC *dc, char **binary_names, int binary_names_ln) {
 
   log_debug("Window is ready\n");
 
-  char search[1024] = {};
-  int search_ln = 0;
+  LC lc = {
+    .bin_names = bin_names,
+    .bin_names_ln = bin_names_ln,
+    .search = (char[1024]){},
+    .search_ln = 0,
+    .sel_idx = 0,
+    .shift_held = false,
+  };
 
-  boolean shift_held = false;
   while (true) {
-    draw(dc, binary_names, binary_names_ln, search, search_ln);
-    if (!handle_events(dc, &e, search, &search_ln, &shift_held)) {
+    draw(dc, &lc);
+    if (!handle_events(dc, &e, &lc)) {
       break;
     }
   }
@@ -141,35 +146,33 @@ void main_loop(DC *dc, char **binary_names, int binary_names_ln) {
   XCloseDisplay(dc->dpy);
 }
 
-void draw(DC *dc, char **binary_names, int binary_names_ln, const char *search,
-          int search_ln) {
+void draw(DC *dc, LC *lc) {
   XClearWindow(dc->dpy, dc->d);
 
-  XDrawString(dc->dpy, dc->d, dc->gc, 0, 20, search, search_ln);
+  XDrawString(dc->dpy, dc->d, dc->gc, 0, 20, lc->search, lc->search_ln);
   XFlush(dc->dpy);
 
   XDrawLine(dc->dpy, dc->d, dc->gc, 0, 24, WINDOW_WIDTH, 24);
   XFlush(dc->dpy);
 
   int match_i = 0;
-  for (int i = 0; i < binary_names_ln; ++i) {
-    if (strstr(binary_names[i], search) == null)
+  for (int i = 0; i < lc->bin_names_ln; ++i) {
+    if (strstr(lc->bin_names[i], lc->search) == null)
       continue;
     ++match_i;
 
     int y = 40 + (20 * match_i);
-    if (y >= WINDOW_HEIGHT)
+    if (y > WINDOW_HEIGHT)
       continue;
 
-    int ln = strlen(binary_names[i]);
-    XDrawString(dc->dpy, dc->d, dc->gc, 0, y, binary_names[i], ln);
+    int ln = strlen(lc->bin_names[i]);
+    XDrawString(dc->dpy, dc->d, dc->gc, 0, y, lc->bin_names[i], ln);
   }
 
   XFlush(dc->dpy);
 }
 
-boolean handle_events(DC *dc, XEvent *e, char *search, int *search_ln,
-                      boolean *shift_held) {
+boolean handle_events(DC *dc, XEvent *e, LC *lc) {
   XNextEvent(dc->dpy, e);
 
   unsigned int c = e->xkey.keycode;
@@ -186,27 +189,27 @@ boolean handle_events(DC *dc, XEvent *e, char *search, int *search_ln,
 
     if (c == KEYCODE_BACKSPACE) {
       log_debug("Removing character\n");
-      if (*search_ln > 0) {
-        search[--(*search_ln)] = '\0';
+      if (lc->search_ln > 0) {
+        lc->search[--lc->search_ln] = '\0';
       }
       break;
     }
 
     if (is_shift_key) {
-      *shift_held = true;
+      lc->shift_held = true;
       break;
     }
 
-    KeySym ks = XLookupKeysym(&e->xkey, *shift_held);
+    KeySym ks = XLookupKeysym(&e->xkey, lc->shift_held);
     if (ks != NoSymbol) {
       log_debug("%c\n", ks);
-      search[(*search_ln)++] = ks;
+      lc->search[lc->search_ln++] = ks;
       break;
     }
     break;
   case KeyRelease:
     if (is_shift_key)
-      *shift_held = false;
+      lc->shift_held = false;
     break;
   case FocusOut:
     log_debug("Focus lost.\n");
